@@ -1,6 +1,6 @@
 #include <ESP8266WiFi.h>
 
-const char* ssid     = "Google Home";
+const char* ssid     = "sonoff Home";
 const char* password = "333666999";
 WiFiServer server(80);
 String header;
