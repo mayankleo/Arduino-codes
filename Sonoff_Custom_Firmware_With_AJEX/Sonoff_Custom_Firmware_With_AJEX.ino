@@ -175,7 +175,6 @@ void setup()
     cbs = digitalRead(button);
 
     WiFi.softAP(ssid, password);
-//    WiFi.softAPConfig(local_ip, gateway, subnet);
     delay(100);
 
     server.on("/", handle_OnConnect);
