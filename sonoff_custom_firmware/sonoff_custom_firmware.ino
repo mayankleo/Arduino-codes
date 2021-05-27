@@ -1,88 +1,218 @@
-#include <ESP8266WiFi.h>
+#include <ESP8266WiFi.h>           
+#include <ESP8266WebServer.h>      
+ESP8266WebServer server(80); 
 
-const char* ssid     = "sonoff Home";
-const char* password = "333666999";
-WiFiServer server(80);
-String header;
-int relayState = LOW;
+const char *ssid = "sonoff Home";
+const char *password = "123456789";
+
+
+const char MAIN_page[] PROGMEM = R"=====(
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HOME</title>
+    <style>
+        html {
+            font-family: Helvetica;
+            margin: 100px auto;
+            text-align: center;
+            cursor: crosshair;
+            background: #242424;
+        }
+        h1 {
+            color: white;
+        }
+        #button {
+            background-color: rgb(80, 80, 80);
+            border: 6px #f00 solid;
+            outline: none;
+            color: #f00;
+            padding: 30px 60px;
+            border-radius: 90px;
+            font-size: 30px;
+            font-weight: bold;
+            margin: 10px;
+            margin-top: 90px;
+            cursor: pointer;
+        }
+        #em {
+            color: rgb(255, 0, 0);
+        }
+        @media screen and (min-width: 601px) {
+            #button {
+                width: 250px;
+            }
+        }
+        @media screen and (max-width: 1000px) {
+            #button {
+                width: 250px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>SONOFF WIFI SWITCH</h1>
+    <button onclick="isend()" id="button">OFF</button>
+    <h4 id="em"></h4>
+    <script>
+        var buts = "OFF";
+        var buttonid = document.getElementById("button");
+        var eid = document.getElementById("em");
+        function isend() {
+            if (buttonid.innerText == "OFF") {
+                var xhttp = new XMLHttpRequest();
+                xhttp.timeout = 1000;
+                xhttp.onreadystatechange = function () {
+                    if (this.readyState == 4 && this.status == 200) {
+                        buttonid.innerText = "ON";
+                        buttonid.style.color = "#0f0";
+                        buttonid.style.border = "6px #0f0 solid";
+                        eid.innerText = "";
+                    } 
+                }
+                xhttp.ontimeout = function() {
+                  eid.innerText = "Something Is Wrong ( status: " + String(this.status) + " )";
+                }
+                xhttp.open("GET", "input?ls=ON", true);
+                xhttp.send();
+            } else if (buttonid.innerText == "ON") {
+                var xhttp = new XMLHttpRequest();
+                xhttp.timeout = 1000;
+                xhttp.onreadystatechange = function () {
+                    if (this.readyState == 4 && this.status == 200) {
+                        buttonid.innerText = "OFF";
+                        buttonid.style.color = "#f00";
+                        buttonid.style.border = "6px #f00 solid";
+                        eid.innerText = "";
+                    } 
+                }
+                xhttp.ontimeout = function() {
+                  eid.innerText = "Something Is Wrong ( status: " + String(this.status) + " )";
+                }
+                xhttp.open("GET", "input?ls=OFF", true);
+                xhttp.send();
+            }
+        }
+        setInterval(function () {
+            getData();
+        }, 500);
+        function getData() {
+            var xhttp = new XMLHttpRequest();
+            xhttp.onreadystatechange = function () {
+                if (this.readyState == 4 && this.status == 200) {
+                    var dt = this.responseText;
+                    if (dt == "ON") {
+                        buttonid.innerText = "ON";
+                        buttonid.style.color = "#0f0";
+                        buttonid.style.border = "6px #0f0 solid";
+                        eid.innerText = "";
+                    } else if (dt == "OFF") {
+                        buttonid.innerText = "OFF";
+                        buttonid.style.color = "#f00";
+                        buttonid.style.border = "6px #f00 solid";
+                        eid.innerText = "";
+                    }
+                }
+            }
+            xhttp.open("GET", "info", true);
+            xhttp.send();
+        }
+    </script>
+</body>
+</html>
+)=====";
+
+
+String relayState = "OFF";
+
 const int button = 0;
 const int relay = 12;
 const int led = 13;
-    
-int lastButtonState;   
-int currentButtonState;
 
-void setup() {
-  pinMode(button,INPUT_PULLUP);
-  pinMode(relay, OUTPUT);
-  pinMode(led, OUTPUT);
-  digitalWrite(relay, LOW);
-  digitalWrite(led, LOW);
-  currentButtonState = digitalRead(button);
-  WiFi.softAP(ssid, password);
-  server.begin();
+int cbs;
+int lbs;
+
+void handle_OnConnect()
+{
+    String s = MAIN_page;
+    server.send(200, "text/html", s);
 }
 
-void loop(){
-  WiFiClient client = server.available();  
-  if (client) {                            
-    String currentLine = "";               
-    while (client.connected()) {          
-      if (client.available()) {             
-        char c = client.read();             
-        header += c;
-        if (c == '\n') {        
-          if (currentLine.length() == 0) { 
-            if (header.indexOf("GET /ON") >= 0) 
-            {
-              relayState = HIGH;
-              digitalWrite(relay, HIGH);
-              digitalWrite(led, HIGH);
-            } 
-            else if (header.indexOf("GET /OFF") >= 0) 
-            {
-              relayState = LOW;
-              digitalWrite(relay, LOW);
-              digitalWrite(led, LOW);
-            }
-
-            client.println("<!DOCTYPE html><html>");
-            client.println("<head><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">");
-            client.println("<link rel=\"icon\" href=\"data:,\">");
-            client.println("<style>html{font-family: Helvetica;display: inline-block;margin: 100px auto; text-align: center; cursor: crosshair;}");
-            client.println(".st{color: tomato;font-size: 30px;}");
-            client.println(".button {background-color:#4CAF50;border: none;outline: none;color: white; padding: 30px 60px;border-radius: 50px;text-decoration: none;font-size: 30px; margin: 2px; cursor: pointer;}");
-            client.println(".button2 {background-color: #555555;}</style></head>");
-            client.println("<body><h1>HOME AUTOMATION SWITCH</h1>");
-              
-            if (relayState==LOW) {client.println("<p class=\"st\">Appliance is : OFF</p>");
-              client.println("<p><a href=\"/ON\"><button class=\"button\">ON</button></a></p>");}
-            else                   {
-              client.println("<p class=\"st\">Appliance is : ON</p>");
-              client.println("<p><a href=\"/OFF\"><button class=\"button button2\">OFF</button></a></p>");} 
-            
-            client.println("</body></html>");
-            client.println();
-          
-            break;} 
-           else {currentLine = "";}}
-           else if (c != '\r') 
-    {currentLine += c; }}}
-    header = "";
-    client.stop();}
-
-      lastButtonState    = currentButtonState;      
-  currentButtonState = digitalRead(button); 
-  delay(50);
-  if(lastButtonState == HIGH && currentButtonState == LOW) {
-    relayState = !relayState;
-    digitalWrite(relay, relayState);
-    digitalWrite(led, relayState);
-    
-  }
+void handle_info(){
+    server.send(200, "text/plane", relayState);
 }
 
+void handle_input(){
+    String ls = "OFF";
+    relayState = server.arg("ls"); 
+    if (relayState == "ON")
+    {
+        digitalWrite(relay, HIGH);
+        digitalWrite(led, LOW);
+    }else if(relayState == "OFF")
+    {
+        digitalWrite(relay, LOW);
+        digitalWrite(led, HIGH);
+    }
+    server.send(200, "text/plane", relayState); 
+}
 
+void handle_NotFound()
+{
+    server.send(404, "text/plain", "Not found");
+}
 
+void setup()
+{
+    pinMode(button,INPUT_PULLUP);
+    pinMode(relay, OUTPUT);
+    pinMode(led, OUTPUT);
+    digitalWrite(relay, LOW);
+    digitalWrite(led, HIGH);
+    cbs = digitalRead(button);
 
-    
+    WiFi.softAP(ssid, password);
+//    WiFi.softAPConfig(local_ip, gateway, subnet);
+    delay(100);
+
+    server.on("/", handle_OnConnect);
+    server.on("/input", handle_input);
+    server.on("/info", handle_info);
+    server.onNotFound(handle_NotFound);
+    server.begin();
+
+    Serial.begin(9600);
+    Serial.println();
+    Serial.print("SSID: ");
+    Serial.print(ssid);
+    Serial.println();
+    Serial.print("PASSWORD: ");
+    Serial.print(password);
+    Serial.println();
+    Serial.print("IP Address: ");
+    Serial.print(WiFi.softAPIP());
+}
+
+void loop(void)
+{
+    server.handleClient();
+
+    lbs  = cbs;      
+    cbs = digitalRead(button); 
+    delay(50);
+    if(lbs == HIGH && cbs == LOW) {
+        if (relayState=="ON"){
+            relayState="OFF";
+            digitalWrite(relay, LOW);
+            digitalWrite(led, HIGH);
+        }else if (relayState=="OFF")
+        {
+            relayState="ON";
+            digitalWrite(relay, HIGH);
+            digitalWrite(led, LOW);
+        }
+    }
+}
