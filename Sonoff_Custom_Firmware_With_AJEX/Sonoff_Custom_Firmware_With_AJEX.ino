@@ -151,11 +151,11 @@ void handle_input(){
     if (relayState == "ON")
     {
         digitalWrite(relay, HIGH);
-        digitalWrite(led, LOW);
+        digitalWrite(led, HIGH);
     }else if(relayState == "OFF")
     {
         digitalWrite(relay, LOW);
-        digitalWrite(led, HIGH);
+        digitalWrite(led, LOW);
     }
     server.send(200, "text/plane", relayState); 
 }
@@ -171,7 +171,7 @@ void setup()
     pinMode(relay, OUTPUT);
     pinMode(led, OUTPUT);
     digitalWrite(relay, LOW);
-    digitalWrite(led, HIGH);
+    digitalWrite(led, LOW);
     cbs = digitalRead(button);
 
     WiFi.softAP(ssid, password);
@@ -206,12 +206,12 @@ void loop(void)
         if (relayState=="ON"){
             relayState="OFF";
             digitalWrite(relay, LOW);
-            digitalWrite(led, HIGH);
+            digitalWrite(led, LOW);
         }else if (relayState=="OFF")
         {
             relayState="ON";
             digitalWrite(relay, HIGH);
-            digitalWrite(led, LOW);
+            digitalWrite(led, HIGH);
         }
     }
 }
