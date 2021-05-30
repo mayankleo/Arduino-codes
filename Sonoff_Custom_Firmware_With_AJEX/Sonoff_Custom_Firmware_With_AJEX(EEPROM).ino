@@ -5,7 +5,7 @@
    
 ESP8266WebServer server(80); 
 
-const char *ssid = "sonoff.local";
+const char *ssid = "SONOFF_HOME";
 const char *password = "123456789";
 
 
@@ -181,16 +181,18 @@ void setup()
     digitalWrite(led, LOW);
     cbs = digitalRead(button);
 
-    EEPROM.begin(0);
+    EEPROM.begin(1);
     WiFi.softAP(ssid, password);
-    delay(100);
-    MDNS.begin("sonoff");
+    delay(100);  
+    MDNS.begin("home");
+
     server.on("/", handle_OnConnect);
     server.on("/input", handle_input);
     server.on("/info", handle_info);
     server.onNotFound(handle_NotFound);
     server.begin();
-
+   
+   
     Serial.begin(9600);
     Serial.println();
     Serial.print("SSID: ");
@@ -202,7 +204,8 @@ void setup()
     Serial.print("IP Address: ");
     Serial.print(WiFi.softAPIP());
     Serial.println();
-    Serial.print("Domain : sonoff.local");
+    Serial.print("Domain : home.local");
+   
 
     int value = EEPROM.read(0);
     if (value==1){
@@ -214,6 +217,7 @@ void setup()
 
 void loop(void)
 {
+    MDNS.update();
     server.handleClient();
 
     lbs  = cbs;      
@@ -226,6 +230,7 @@ void loop(void)
             digitalWrite(led, LOW);
             EEPROM.write(0, 0);
             EEPROM.commit();
+
         }else if (relayState=="OFF")
         {
             relayState="ON";
@@ -233,6 +238,7 @@ void loop(void)
             digitalWrite(led, HIGH);
             EEPROM.write(0, 1);
             EEPROM.commit();
+   
         }
     }
 }
