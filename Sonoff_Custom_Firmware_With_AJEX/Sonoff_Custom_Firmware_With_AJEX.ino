@@ -6,9 +6,9 @@ ESP8266WebServer server(80);
 
 //change ssid and password according to you and upload 
 //after that connect you phone/pc from this wifi
-//and search "sonoff.local"
+//and search "home.local"
 
-const char *ssid = "sonoff Home";
+const char *ssid = "SONOFF_HOME";
 const char *password = "123456789";
 
 
@@ -182,7 +182,7 @@ void setup()
 
     WiFi.softAP(ssid, password);
     delay(100);
-    MDNS.begin("sonoff");
+    MDNS.begin("home");
     server.on("/", handle_OnConnect);
     server.on("/input", handle_input);
     server.on("/info", handle_info);
@@ -205,6 +205,7 @@ void setup()
 
 void loop(void)
 {
+    MDNS.update();
     server.handleClient();
 
     lbs  = cbs;      
