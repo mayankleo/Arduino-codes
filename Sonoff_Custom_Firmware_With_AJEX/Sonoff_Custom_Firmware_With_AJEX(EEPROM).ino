@@ -1,6 +1,5 @@
 #include <ESP8266WiFi.h>           
 #include <ESP8266WebServer.h>   
-#include <ESP8266mDNS.h>
 #include <EEPROM.h>
    
 ESP8266WebServer server(80); 
@@ -169,7 +168,7 @@ void handle_input(){
         EEPROM.write(0, 0);
         EEPROM.commit();
     }
-    server.send(200, "text/plane", relayState); 
+    server.send(200); 
 }
 
 void handle_NotFound()
@@ -189,27 +188,12 @@ void setup()
     EEPROM.begin(1);
     WiFi.softAP(ssid, password);
     delay(100);  
-    MDNS.begin("home");
 
     server.on("/", handle_OnConnect);
     server.on("/input", handle_input);
     server.on("/info", handle_info);
     server.onNotFound(handle_NotFound);
     server.begin();
-   
-   
-    Serial.begin(9600);
-    Serial.println();
-    Serial.print("SSID: ");
-    Serial.print(ssid);
-    Serial.println();
-    Serial.print("PASSWORD: ");
-    Serial.print(password);
-    Serial.println();
-    Serial.print("IP Address: ");
-    Serial.print(WiFi.softAPIP());
-    Serial.println();
-    Serial.print("Domain : home.local");
    
 
     int value = EEPROM.read(0);
@@ -222,7 +206,6 @@ void setup()
 
 void loop(void)
 {
-    MDNS.update();
     server.handleClient();
 
     lbs  = cbs;      
