@@ -1,6 +1,5 @@
 #include <ESP8266WiFi.h>           
 #include <ESP8266WebServer.h>   
-#include <ESP8266mDNS.h>
 #include <EEPROM.h>
    
 ESP8266WebServer server(80); 
@@ -425,7 +424,6 @@ void setup()
     EEPROM.begin(1);
     WiFi.softAP(ssid, password);
     delay(100);  
-    MDNS.begin("home");
 
     server.on("/", handle_OnConnect);
     server.on("/input", handle_input);
@@ -446,7 +444,6 @@ void setup()
 
 void loop(void)
 {
-    MDNS.update();
     server.handleClient();
     unsigned long currentTime = millis();
 
