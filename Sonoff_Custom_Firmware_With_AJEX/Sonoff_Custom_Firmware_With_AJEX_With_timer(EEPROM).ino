@@ -1,9 +1,13 @@
 #include <ESP8266WiFi.h>           
 #include <ESP8266WebServer.h>   
 #include <ESP8266mDNS.h>
-
+#include <EEPROM.h>
    
 ESP8266WebServer server(80); 
+
+//
+//
+//
 
 const char *ssid = "SONOFF_HOME";
 const char *password = "123456789";
@@ -232,13 +236,16 @@ const char MAIN_page[] PROGMEM = R"=====(
                 clearInterval(intm);
             }
             timel--;
+            if (timel < 0) {
+                timel = 0;
+            }
         }
         function stoptime() {
             clearInterval(intm);
             document.getElementById("ts").style.visibility = "hidden";
             document.getElementById("stopbt").style.display = "none";
             document.getElementById("setbt").style.display = "inline-block";
-            serversendvalue = "timset?timevalue=0:0"
+            serversendvalue = "timset?timevalue=0:0";
             var xhttp = new XMLHttpRequest();
             xhttp.timeout = 1000;
             xhttp.ontimeout = function () {
@@ -318,8 +325,8 @@ const char MAIN_page[] PROGMEM = R"=====(
                 if (this.readyState == 4 && this.status == 200) {
                     var dt = JSON.parse(this.response);
                     if (dt.time > 0) {
-                        timel = dt.time
-                        stat = dt.status
+                        timel = dt.time;
+                        stat = dt.status;
                         document.getElementById("ts").style.visibility = "visible";
                         document.getElementById("setbt").style.display = "none";
                         document.getElementById("stopbt").style.display = "inline-block";
@@ -350,8 +357,8 @@ const char MAIN_page[] PROGMEM = R"=====(
 
 String relayState = "OFF";
 
-const int button = 4;
-const int relay = 5;
+const int button = 0;
+const int relay = 12;
 const int led = 2;
 
 int cbs;
@@ -380,11 +387,15 @@ void handle_input(){
     {
         digitalWrite(relay, HIGH);
         digitalWrite(led, HIGH);
+        EEPROM.write(0, 1);
+        EEPROM.commit();
 
     }else if(relayState == "OFF")
     {
         digitalWrite(relay, LOW);
         digitalWrite(led, LOW);
+        EEPROM.write(0, 0);
+        EEPROM.commit();
 
     }
     server.send(200); 
@@ -411,6 +422,7 @@ void setup()
     digitalWrite(led, LOW);
     cbs = digitalRead(button);
 
+    EEPROM.begin(1);
     WiFi.softAP(ssid, password);
     delay(100);  
     MDNS.begin("home");
@@ -423,6 +435,12 @@ void setup()
     server.onNotFound(handle_NotFound);
     server.begin();
 
+    int value = EEPROM.read(0);
+    if (value==1){
+          relayState="ON";
+          digitalWrite(relay, HIGH);
+          digitalWrite(led, HIGH);
+      }
   
 }
 
@@ -440,6 +458,8 @@ void loop(void)
             relayState="OFF";
             digitalWrite(relay, LOW);
             digitalWrite(led, LOW);
+            EEPROM.write(0, 0);
+            EEPROM.commit();
 
 
         }else if (relayState=="OFF")
@@ -447,6 +467,8 @@ void loop(void)
             relayState="ON";
             digitalWrite(relay, HIGH);
             digitalWrite(led, HIGH);
+            EEPROM.write(0, 1);
+            EEPROM.commit();
 
    
         }
@@ -461,10 +483,14 @@ void loop(void)
             relayState="ON";
             digitalWrite(relay, HIGH);
             digitalWrite(led, HIGH);
+            EEPROM.write(0, 1);
+            EEPROM.commit();
           }else if (timestatus==0){
             relayState="OFF";
             digitalWrite(relay, LOW);
             digitalWrite(led, LOW);
+            EEPROM.write(0, 0);
+            EEPROM.commit();
           }
 
         }
