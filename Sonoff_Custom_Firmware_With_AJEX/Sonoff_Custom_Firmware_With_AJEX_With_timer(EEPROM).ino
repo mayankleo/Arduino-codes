@@ -4,13 +4,13 @@
    
 ESP8266WebServer server(80); 
 
-//
-//
-//
+//change ssid and password according to you and upload 
+//after that connect you phone/pc from this wifi
+//and search "home.local" and you can set on/off time also ,
+// IN THIS PROGRAM YOU WILL GET EEPROM SUPPORT WHICH SAVE YOUR APPLINCE STATUS SO THAT YOU WILL NOT LOSE YOUR APPLINCE STATE AFTER POWER CUTOFF. 
 
 const char *ssid = "SONOFF_HOME";
 const char *password = "123456789";
-
 
 const char MAIN_page[] PROGMEM = R"=====(
 <!DOCTYPE html>
