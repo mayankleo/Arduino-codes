@@ -163,7 +163,7 @@ void handle_input(){
         digitalWrite(relay, LOW);
         digitalWrite(led, LOW);
     }
-    server.send(200, "text/plane", relayState); 
+    server.send(200); 
 }
 
 void handle_NotFound()
