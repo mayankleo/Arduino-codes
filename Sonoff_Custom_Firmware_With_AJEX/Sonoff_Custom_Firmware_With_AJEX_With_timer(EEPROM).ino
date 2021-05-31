@@ -358,7 +358,7 @@ String relayState = "OFF";
 
 const int button = 0;
 const int relay = 12;
-const int led = 2;
+const int led = 13;
 
 int cbs;
 int lbs;
