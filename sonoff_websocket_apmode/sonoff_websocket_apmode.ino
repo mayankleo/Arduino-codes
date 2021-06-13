@@ -2,6 +2,8 @@
 #include <WebSocketsServer.h>
 #include <ArduinoJson.h>
 #include <ESPAsyncWebServer.h>
+#include <EEPROM.h>
+
 //#include <FS.h>
 
 AsyncWebServer server(80);
@@ -253,17 +255,27 @@ void setup()
     digitalWrite(relay, relayState);
     digitalWrite(led, relayState);
     cbs = digitalRead(button);
+    
+    EEPROM.begin(1);
 
-//    SPIFFS.begin();
     WiFi.softAP(ssid, password);
     server.on("/", [](AsyncWebServerRequest *request)
               { request->send_P(200, "text/html", MAIN_page); });
+              
+//    SPIFFS.begin();              
 //    server.on("/favicon.ico", HTTP_GET, [](AsyncWebServerRequest *request)
 //              { request->send(SPIFFS, "/favicon.png", "image/png"); });
+
     server.begin();
     websockets.begin();
     websockets.onEvent(webSocketEvent);
-              
+
+    int value = EEPROM.read(0);
+    if (value==1){
+          relayState = 1;
+          digitalWrite(relay, 1);
+          digitalWrite(led, 1);
+      }         
 }
 
 void loop()
@@ -273,16 +285,8 @@ void loop()
     lbs = cbs;
     cbs = digitalRead(button);
     delay(50);
-    if (lbs == HIGH && cbs == LOW)
-    {
-        if (relayState == 1)
-        {
-            relayaction(0);
-        }
-        else if (relayState == 0)
-        {
-            relayaction(1);
-        }
+    if (lbs == HIGH && cbs == LOW){
+      relayaction(!relayState);
     }
 
   if (currentTime - previousTime >= 1000){
@@ -305,6 +309,8 @@ void relayaction(int input_state)
     relayState = input_state;
     digitalWrite(relay, input_state);
     digitalWrite(led, input_state);
+    EEPROM.write(0, input_state);
+    EEPROM.commit();
     stats = "{\"type\":1,\"b1\":" + String(input_state) + "}";
     websockets.broadcastTXT(stats);
 }
