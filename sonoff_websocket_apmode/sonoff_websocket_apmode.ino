@@ -2,30 +2,29 @@
 #include <WebSocketsServer.h>
 #include <ArduinoJson.h>
 #include <ESPAsyncWebServer.h>
-#include <Ticker.h> 
-#include <FS.h>
+//#include <FS.h>
 
 AsyncWebServer server(80);
-WebSocketsServer websockets(81); 
+WebSocketsServer websockets(81);
 
-Ticker timer;
-
-const char *ssid = "SONOFF_TEST";
+const char *ssid = "SONOFF_TEST123";
 const char *password = "123456789";
 
 int relayState = 0;
 
-const int button = 5;
-const int relay = 4;
-const int led = 2;
+const int button = 4;
+const int relay = 5;
+const int led = 16;
 
 int cbs;
 int lbs;
-unsigned long previousTime = 0;
-int tstat=0;
-int tloop=0;
 
-String stats; 
+int tstat = 0;
+int tloop = 0;
+
+unsigned long previousTime = 0;
+
+String stats;
 String staring;
 
 char MAIN_page[] PROGMEM = R"=====(
@@ -39,7 +38,7 @@ char MAIN_page[] PROGMEM = R"=====(
     <style>
         html {
             font-family: Helvetica;
-            margin: 90px auto;
+            margin: 110px auto;
             text-align: center;
             cursor: crosshair;
             background: #242424;}
@@ -64,7 +63,8 @@ char MAIN_page[] PROGMEM = R"=====(
             height: 45px;
             width: 120px;
             font-size: 20px;
-            padding: 5px;}
+            padding: 5px;
+            cursor: pointer;}
         #h,#m,#s {
             height: 30px;
             width: 60px;
@@ -72,7 +72,8 @@ char MAIN_page[] PROGMEM = R"=====(
             border: 2px yellow solid;
             background: rgb(80, 80, 80);
             color: aquamarine;
-            outline: none;}
+            outline: none;
+            cursor: pointer;}
         #stime {color: aquamarine;visibility: hidden;}
         .ltime {color: yellow;}
         label {color: #fff;}
@@ -88,40 +89,40 @@ char MAIN_page[] PROGMEM = R"=====(
     <br>
     <select id="h">
         <option value=0>00</option>
-        <option value=1>01</option>
-        <option value=2>02</option>
-        <option value=3>03</option>
-        <option value=4>04</option>
-        <option value=5>05</option>
-        <option value=6>06</option>
-        <option value=7>07</option>
-        <option value=8>08</option>
-        <option value=9>09</option>
-        <option value=10>10</option>
-        <option value=11>11</option>
+        <option value=1>01 Hours</option>
+        <option value=2>02 Hours</option>
+        <option value=3>03 Hours</option>
+        <option value=4>04 Hours</option>
+        <option value=5>05 Hours</option>
+        <option value=6>06 Hours</option>
+        <option value=7>07 Hours</option>
+        <option value=8>08 Hours</option>
+        <option value=9>09 Hours</option>
+        <option value=10>10 Hours</option>
+        <option value=11>11 Hours</option>
     </select><label>HH</label>
     <select id="m">
         <option value=0>00</option>
-        <option value=0.09>5 sec</option>
-        <option value=5>05</option>
-        <option value=10>10</option>
-        <option value=15>15</option>
-        <option value=20>20</option>
-        <option value=25>25</option>
-        <option value=30>30</option>
-        <option value=35>35</option>
-        <option value=40>40</option>
-        <option value=45>45</option>
-        <option value=50>50</option>
-        <option value=55>55</option>
-        <option value=60>60</option>
+        <option value=0.09>05 Seconds</option>
+        <option value=5 >05 Minutes</option>
+        <option value=10>10 Minutes</option>
+        <option value=15>15 Minutes</option>
+        <option value=20>20 Minutes</option>
+        <option value=25>25 Minutes</option>
+        <option value=30>30 Minutes</option>
+        <option value=35>35 Minutes</option>
+        <option value=40>40 Minutes</option>
+        <option value=45>45 Minutes</option>
+        <option value=50>50 Minutes</option>
+        <option value=55>55 Minutes</option>
+        <option value=60>60 Minutes</option>
     </select><label>MM</label>
     <select id="s">
         <option value=1>ON</option>
         <option value=0>OFF</option>
     </select>
     <div id="timesetbt"><button onclick="setime()" id="setbt" class="timerbt">SET</button>
-        <button onclick="stoptime()" id="stopbt" class="timerbt">STOP</button>
+        <button onclick="timedata(0,0)" id="stopbt" class="timerbt">STOP</button>
     </div>
     <h3 id="stime"><label class="ltime" id="timed">00:00:00</label> Time Left To <label class="ltime"
             id="times">OFF</label> The Device</h3>
@@ -138,6 +139,9 @@ char MAIN_page[] PROGMEM = R"=====(
         var s = document.getElementById("s");
         var timed = document.getElementById("timed");
         var times = document.getElementById("times");
+        var stime = document.getElementById("stime") .style
+        var stopbt = document.getElementById("stopbt").style
+        var setbt = document.getElementById("setbt") .style
         function btaction() {
             if (buttonid.innerText == "OFF") {
                 buts = 1;
@@ -156,39 +160,31 @@ char MAIN_page[] PROGMEM = R"=====(
                 if (data.b1 == 1) {
                     buttonid.innerText = "ON";
                     buttonid.style.color = "#0f0";
-                    buttonid.style.border = "6px #0f0 solid";
+                    buttonid.style.borderColor = "#0f0";
                 } else {
                     buttonid.innerText = "OFF";
                     buttonid.style.color = "#f00";
-                    buttonid.style.border = "6px #f00 solid";
+                    buttonid.style.borderColor = "#f00";
                 }
             } else if (data.type == 2) {
                 if (data.tloop > 0) {
                     clearInterval(timeloop);
                     ttotal = data.tloop;
                     stat = data.tstat;
-                    document.getElementById("stime").style.visibility = "visible";
-                    document.getElementById("setbt").style.display = "none";
-                    document.getElementById("stopbt").style.display = "inline-block";
+                    containts("visible","inline-block","none");
                     if (stat == 1) {times.innerText = "ON";} 
                     else {times.innerText = "OFF";}
                     timeloop = setInterval(function () { startime(); }, 1000);
                 }else{
                     clearInterval(timeloop);
-                    document.getElementById("stime").style.visibility = "hidden";
-                    document.getElementById("stopbt").style.display = "none";
-                    document.getElementById("setbt").style.display = "inline-block";
+                    containts("hidden","none","inline-block");
                 }
             }
         }
         function setime() {
-            document.getElementById("stime").style.visibility = "visible";
-            document.getElementById("setbt").style.display = "none";
-            document.getElementById("stopbt").style.display = "inline-block";
             ttotal = Math.round(Number(h.value) * 60 * 60 + Number(m.value) * 60);
             stat = Number(s.value);
-            jsondata = '{"type":2,"sec":' + ttotal + ',"stat":' + stat + '}';
-            connection.send(jsondata);
+            timedata(ttotal,stat);
         }
         function startime() {
             hoh = ttotal / (60 * 60);
@@ -201,105 +197,120 @@ char MAIN_page[] PROGMEM = R"=====(
             if (sss.length == 1){sss = "0" + sss;}
             timed.innerText = hhh + ":" + mmm + ":" + sss;
             if (ttotal <= 0) {
-                document.getElementById("stime").style.visibility = "hidden";
-                document.getElementById("stopbt").style.display = "none";
-                document.getElementById("setbt").style.display = "inline-block";
+                containts("hidden","none","inline-block");
                 ttotal = 0;
                 clearInterval(timeloop);
             }
         ttotal--;}
-        function stoptime() {
-            jsondata = '{"type":2,"sec":0,"stat":0}';
-            connection.send(jsondata);
-        }
+
+        function timedata(sec,stat){
+            jsondata = '{"type":2,"sec":' + sec + ',"stat":' + stat + '}';
+            connection.send(jsondata);}
+
+        function containts(a,b,c){
+            stime.visibility = a;
+            stopbt.display = b;
+            setbt.display = c;} 
+            
     </script>
 </body>
 </html>
 )=====";
 
-void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t length) {
-  switch (type) 
-  {
-    case WStype_CONNECTED:{
-      stats = "{\"type\":1,\"b1\":"+String(relayState)+"}"; 
-      websockets.broadcastTXT(stats);
-      staring = "{\"type\":2,\"tloop\":"+String(tloop)+",\"tstat\":"+String(tstat)+"}";
-      websockets.broadcastTXT(staring);}
-    case WStype_TEXT:{
-      String message = String((char*)( payload));
-      DynamicJsonDocument doc(200);
-      deserializeJson(doc, message);
-      if (doc["type"]==1){
-        relayState = doc["b1"];
-        digitalWrite(relay,relayState);
-        digitalWrite(led,relayState);
-        stats = "{\"type\":1,\"b1\":"+String(relayState)+"}"; 
-        websockets.broadcastTXT(stats);
-      }else if (doc["type"]==2){
-        tloop = doc["sec"];
-        tstat = doc["stat"];
-        staring = "{\"type\":2,\"tloop\":"+String(tloop)+",\"tstat\":"+String(tstat)+"}";
-        websockets.broadcastTXT(staring);
-      }}
-  }
-}
-
-
-void NotFound(AsyncWebServerRequest *request){request->send(404, "text/plain", "PAGE NOT FOUND!!!");}
-
-void setup()
+void webSocketEvent(uint8_t num, WStype_t type, uint8_t *payload, size_t length)
 {
-  pinMode(button,INPUT_PULLUP);
-  pinMode(relay, OUTPUT);
-  pinMode(led, OUTPUT);
-  digitalWrite(relay, relayState);
-  digitalWrite(led, relayState);
-  cbs = digitalRead(button);
-  SPIFFS.begin();
-  WiFi.softAP(ssid, password);
-
-  server.on("/", [](AsyncWebServerRequest * request){request->send_P(200, "text/html", MAIN_page);});
-  server.on("/favicon.ico", HTTP_GET, [](AsyncWebServerRequest *request){request->send(SPIFFS, "/favicon.png", "image/png");});
-  server.onNotFound(NotFound);
-  server.begin();
-  websockets.begin();
-  websockets.onEvent(webSocketEvent);
-  timer.attach(1,timecounter);
-}
-
-void loop(void)
-{
-    websockets.loop();
-    lbs  = cbs;      
-    cbs = digitalRead(button); 
-    delay(50);
-    if(lbs == HIGH && cbs == LOW) {
-        if (relayState==1){
-            relayState=0;
-            digitalWrite(relay, relayState);
-            digitalWrite(led, relayState);
-            stats = "{\"type\":1,\"b1\":"+String(relayState)+"}";
-            websockets.broadcastTXT(stats);
-        }else if (relayState==0)
+    switch (type)
+    {
+        case WStype_CONNECTED:
         {
-            relayState=1;
-            digitalWrite(relay, relayState);
-            digitalWrite(led, relayState);
-            stats = "{\"type\":1,\"b1\":"+String(relayState)+"}";
-            websockets.broadcastTXT(stats);
+            relayaction(relayState);
+            timerset(tloop,tstat);
+        }
+        case WStype_TEXT:
+        {
+            String message = String((char *)(payload));
+            DynamicJsonDocument doc(200);
+            deserializeJson(doc, message);
+            if (doc["type"] == 1)
+            {
+                relayaction(doc["b1"]);
+            }
+            else if (doc["type"] == 2)
+            {
+                tloop = doc["sec"];
+                tstat = doc["stat"];
+                timerset(tloop,tstat);
+            }
         }
     }
 }
-void timecounter(){
-  if (tloop>0){
-     tloop--;
-     if (tloop==0){
-        delay(1300);
-        relayState=tstat;
-        digitalWrite(relay, relayState);
-        digitalWrite(led, relayState);
-        stats = "{\"type\":1,\"b1\":"+String(relayState)+"}"; 
-        websockets.broadcastTXT(stats); 
-     }
+
+void setup()
+{   
+    pinMode(button, INPUT_PULLUP);
+    pinMode(relay, OUTPUT);
+    pinMode(led, OUTPUT);
+    digitalWrite(relay, relayState);
+    digitalWrite(led, relayState);
+    cbs = digitalRead(button);
+
+//    SPIFFS.begin();
+    WiFi.softAP(ssid, password);
+    server.on("/", [](AsyncWebServerRequest *request)
+              { request->send_P(200, "text/html", MAIN_page); });
+//    server.on("/favicon.ico", HTTP_GET, [](AsyncWebServerRequest *request)
+//              { request->send(SPIFFS, "/favicon.png", "image/png"); });
+    server.begin();
+    websockets.begin();
+    websockets.onEvent(webSocketEvent);
+              
+}
+
+void loop()
+{
+    unsigned long currentTime = millis();
+    websockets.loop();
+    lbs = cbs;
+    cbs = digitalRead(button);
+    delay(50);
+    if (lbs == HIGH && cbs == LOW)
+    {
+        if (relayState == 1)
+        {
+            relayaction(0);
+        }
+        else if (relayState == 0)
+        {
+            relayaction(1);
+        }
+    }
+
+  if (currentTime - previousTime >= 1000){
+      if (tloop > 0)
+    {
+        tloop--;
+        if (tloop == 0)
+        {
+            delay(1500);
+            relayaction(tstat);
+        }
+    }
+    previousTime = currentTime;
   }
+    
+}
+
+void relayaction(int input_state)
+{
+    relayState = input_state;
+    digitalWrite(relay, input_state);
+    digitalWrite(led, input_state);
+    stats = "{\"type\":1,\"b1\":" + String(input_state) + "}";
+    websockets.broadcastTXT(stats);
+}
+
+void timerset(int loops,int stat)
+{
+    staring = "{\"type\":2,\"tloop\":" + String(loops) + ",\"tstat\":" + String(stat) + "}";
+    websockets.broadcastTXT(staring);
 }
