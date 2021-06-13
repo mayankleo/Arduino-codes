@@ -9,7 +9,7 @@
 AsyncWebServer server(80);
 WebSocketsServer websockets(81);
 
-const char *ssid = "SONOFF_TEST123";
+const char *ssid = "SONOFF_HOME";
 const char *password = "123456789";
 
 int relayState = 0;
