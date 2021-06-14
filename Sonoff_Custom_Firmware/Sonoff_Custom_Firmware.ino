@@ -14,9 +14,9 @@ const char *password = "123456789";
 
 int relayState = 0;
 
-const int button = 4;
-const int relay = 5;
-const int led = 16;
+const int button = 0;
+const int relay = 12;
+const int led = 13;
 
 int cbs;
 int lbs;
