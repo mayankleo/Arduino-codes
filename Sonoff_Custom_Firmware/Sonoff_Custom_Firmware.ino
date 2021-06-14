@@ -145,15 +145,10 @@ char MAIN_page[] PROGMEM = R"=====(
         var stopbt = document.getElementById("stopbt").style
         var setbt = document.getElementById("setbt") .style
         function btaction() {
-            if (buttonid.innerText == "OFF") {
-                buts = 1;
-                data = '{"type":1,"b1":' + buts + '}';
-                connection.send(data);
-            } else if (buttonid.innerText == "ON") {
-                buts = 0;
-                data = '{"type":1,"b1":' + buts + '}';
-                connection.send(data);
-            }
+            if (buttonid.innerText == "OFF"){buts = 1;} 
+            else{buts = 0;}
+            data = '{"type":1,"b1":' + buts + '}';
+            connection.send(data);
         }
         connection.onmessage = function (event) {
             var stats_data = event.data;
