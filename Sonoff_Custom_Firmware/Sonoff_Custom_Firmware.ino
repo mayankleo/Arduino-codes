@@ -4,8 +4,6 @@
 #include <ESPAsyncWebServer.h>
 #include <EEPROM.h>
 
-//#include <FS.h>
-
 AsyncWebServer server(80);
 WebSocketsServer websockets(81);
 
@@ -56,7 +54,10 @@ char MAIN_page[] PROGMEM = R"=====(
             font-weight: bold;
             margin: 2px;
             margin-bottom: 50px;
-            cursor: pointer;}
+            cursor: pointer;
+            letter-spacing: 4px;
+            text-shadow: 0 0 3px #f00;
+            box-shadow: 0 0 10px #f00, 0 0 40px #f00;}
         .timerbt {
             color: aquamarine;
             background: rgb(80, 80, 80);
@@ -69,7 +70,7 @@ char MAIN_page[] PROGMEM = R"=====(
             cursor: pointer;}
         #h,#m,#s {
             height: 30px;
-            width: 60px;
+            width: 90px;
             border-radius: 30px;
             border: 2px yellow solid;
             background: rgb(80, 80, 80);
@@ -132,6 +133,7 @@ char MAIN_page[] PROGMEM = R"=====(
         var connection = new WebSocket('ws://' + location.hostname + ':81/');
         var buts = 0;
         var buttonid = document.getElementById("button");
+        var btstyle = buttonid.style
         var full_data;
         var timeloop;
         var stat;
@@ -156,12 +158,16 @@ char MAIN_page[] PROGMEM = R"=====(
             if (data.type == 1) {
                 if (data.b1 == 1) {
                     buttonid.innerText = "ON";
-                    buttonid.style.color = "#0f0";
-                    buttonid.style.borderColor = "#0f0";
+                    btstyle.color = "#0f0";
+                    btstyle.borderColor = "#0f0";
+                    btstyle.boxShadow = "0 0 10px #0f0, 0 0 40px #0f0";
+                    btstyle.textShadow = "0 0 3px #0f0";
                 } else {
                     buttonid.innerText = "OFF";
-                    buttonid.style.color = "#f00";
-                    buttonid.style.borderColor = "#f00";
+                    btstyle.color = "#f00";
+                    btstyle.borderColor = "#f00";
+                    btstyle.boxShadow = "0 0 10px #f00, 0 0 40px #f00";
+                    btstyle.textShadow = "0 0 3px #f00";
                 }
             } else if (data.type == 2) {
                 if (data.tloop > 0) {
@@ -256,11 +262,6 @@ void setup()
     WiFi.softAP(ssid, password);
     server.on("/", [](AsyncWebServerRequest *request)
               { request->send_P(200, "text/html", MAIN_page); });
-              
-//    SPIFFS.begin();              
-//    server.on("/favicon.ico", HTTP_GET, [](AsyncWebServerRequest *request)
-//              { request->send(SPIFFS, "/favicon.png", "image/png"); });
-
     server.begin();
     websockets.begin();
     websockets.onEvent(webSocketEvent);
