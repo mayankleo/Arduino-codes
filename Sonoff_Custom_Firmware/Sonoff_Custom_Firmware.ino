@@ -24,6 +24,7 @@ int tloop = 0;
 
 unsigned long previousTime = 0;
 
+String st;
 String stats;
 String staring;
 
@@ -224,27 +225,29 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t *payload, size_t length)
 {
     switch (type)
     {
-        case WStype_CONNECTED:
-        {
-            relayaction(relayState);
-            timerset(tloop,tstat);
-        }
+        case WStype_CONNECTED: {
+            stats = "{\"type\":1,\"b1\":" + String(relayState) + "}";
+            websockets.sendTXT(num,stats);
+            staring = "{\"type\":2,\"tloop\":" + String(tloop) + ",\"tstat\":" + String(tstat) + "}";
+            websockets.sendTXT(num,staring);
+            }
+            break;
         case WStype_TEXT:
-        {
-            String message = String((char *)(payload));
-            DynamicJsonDocument doc(200);
-            deserializeJson(doc, message);
-            if (doc["type"] == 1)
             {
-                relayaction(doc["b1"]);
+                String message = String((char *)(payload));
+                DynamicJsonDocument doc(200);
+                deserializeJson(doc, message);
+                if (doc["type"] == 1)
+                {
+                    relayaction(doc["b1"]);
+                }
+                else if (doc["type"] == 2)
+                {
+                    tloop = doc["sec"];
+                    tstat = doc["stat"];
+                    timerset(tloop,tstat);
+                }
             }
-            else if (doc["type"] == 2)
-            {
-                tloop = doc["sec"];
-                tstat = doc["stat"];
-                timerset(tloop,tstat);
-            }
-        }
     }
 }
 
@@ -260,8 +263,20 @@ void setup()
     EEPROM.begin(1);
 
     WiFi.softAP(ssid, password);
+    
     server.on("/", [](AsyncWebServerRequest *request)
               { request->send_P(200, "text/html", MAIN_page); });
+    
+    server.on("/do", HTTP_GET, [](AsyncWebServerRequest * request)
+              { relayaction(!relayState);
+                    if (relayState==1){
+                       st = "ON";
+                    }else{
+                       st = "OFF";
+                    }
+                request->send(200, "text/plain", st);
+              });
+    
     server.begin();
     websockets.begin();
     websockets.onEvent(webSocketEvent);
